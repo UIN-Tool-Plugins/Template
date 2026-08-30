@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>计算器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .calc {
+      background: #37474F;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      width: 320px;
+    }
+    .display {
+      background: #263238;
+      color: white;
+      font-size: 2em;
+      text-align: right;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      min-height: 60px;
+      word-break: break-all;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    button {
+      background: #546E7A;
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+    button:hover { background: #607D8B; }
+    button.op { background: #FF9800; }
+    button.op:hover { background: #F57C00; }
+    button.clear { background: #EF5350; }
+    button.clear:hover { background: #D32F2F; }
+  </style>
+</head>
+<body>
+  <div class="calc">
+    <div class="display" id="display">0</div>
+    <div class="buttons">
+      <button class="clear" onclick="clearAll()">C</button>
+      <button onclick="appendChar('(')">(</button>
+      <button onclick="appendChar(')')">)</button>
+      <button class="op" onclick="appendChar('/')">/</button>
+      <button onclick="appendChar('7')">7</button>
+      <button onclick="appendChar('8')">8</button>
+      <button onclick="appendChar('9')">9</button>
+      <button class="op" onclick="appendChar('*')">*</button>
+      <button onclick="appendChar('4')">4</button>
+      <button onclick="appendChar('5')">5</button>
+      <button onclick="appendChar('6')">6</button>
+      <button class="op" onclick="appendChar('-')">-</button>
+      <button onclick="appendChar('1')">1</button>
+      <button onclick="appendChar('2')">2</button>
+      <button onclick="appendChar('3')">3</button>
+      <button class="op" onclick="appendChar('+')">+</button>
+      <button onclick="appendChar('0')" style="grid-column: span 2">0</button>
+      <button onclick="appendChar('.')">.</button>
+      <button class="op" onclick="calculate()">=</button>
+    </div>
+  </div>
+  <script>
+    let expr = '';
+    function appendChar(c) { expr += c; document.getElementById('display').textContent = expr; }
+    function clearAll() { expr = ''; document.getElementById('display').textContent = '0'; }
+    async function calculate() {
+      try {
+        const port = UINPlugin.getBackendPort ? UINPlugin.getBackendPort() : 8000;
+        const resp = await fetch('http://127.0.0.1:' + port + '/calc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expr: expr })
+        });
+        const data = await resp.json();
+        if (data.error) {
+          document.getElementById('display').textContent = 'Error';
+        } else {
+          document.getElementById('display').textContent = data.result;
+          expr = data.result;
+        }
+      } catch (e) {
+        document.getElementById('display').textContent = 'Error: ' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>

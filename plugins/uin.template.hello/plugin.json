@@ -1,0 +1,12 @@
+{
+  "pluginId": "uin.template.hello",
+  "name": "Hello World",
+  "version": 0,
+  "versionName": "1.0.0",
+  "author": "UIN",
+  "description": "一个简单的示例 Web 插件",
+  "category": "示例",
+  "uiType": "web",
+  "entry": "web/index.html",
+  "notice": "基础 Web 插件模板，展示最基本的插件结构。"
+}

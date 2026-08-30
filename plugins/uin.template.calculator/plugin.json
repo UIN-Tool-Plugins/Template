@@ -1,0 +1,17 @@
+{
+  "pluginId": "uin.template.calculator",
+  "name": "计算器",
+  "version": 0,
+  "versionName": "1.0.0",
+  "author": "UIN",
+  "description": "带 Python 后端的计算器插件",
+  "category": "工具",
+  "uiType": "web",
+  "entry": "web/index.html",
+  "backend": "python",
+  "backendEntry": "scripts/backend/server.py",
+  "backendStartCommand": "pip install flask && python scripts/backend/server.py",
+  "backendAutoStart": true,
+  "backendHealthCheck": "/health",
+  "notice": "演示 Web + Python 后端插件的完整结构。"
+}

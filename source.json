@@ -1,0 +1,6 @@
+{
+  "sourceId": "template",
+  "name": "模板源",
+  "description": "插件仓库模板，fork 后可快速创建自己的插件源",
+  "maintainer": "UIN-Tool-Plugins"
+}

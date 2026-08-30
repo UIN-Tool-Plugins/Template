@@ -1,0 +1,92 @@
+name: Build Plugins
+
+on:
+  push:
+    paths:
+      - 'plugins/**'
+      - 'source.json'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Build changed plugins
+        run: |
+          mkdir -p build
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- plugins/ 2>/dev/null | cut -d'/' -f2 | sort -u)
+
+          # 首次推送或 workflow_dispatch 时构建全部
+          if [ -z "$CHANGED" ]; then
+            CHANGED=$(ls -d plugins/*/ 2>/dev/null | xargs -I{} basename {})
+          fi
+
+          SUCCESS=0
+          FAIL=0
+
+          for plugin_id in $CHANGED; do
+            PLUGIN_DIR="plugins/$plugin_id"
+            [ -d "$PLUGIN_DIR" ] || continue
+
+            if bash scripts/build-plugin.sh "$PLUGIN_DIR" "build/$plugin_id.tpk"; then
+              SUCCESS=$((SUCCESS + 1))
+            else
+              FAIL=$((FAIL + 1))
+              echo "❌ Failed: $plugin_id"
+            fi
+          done
+
+          echo "✅ Built: $SUCCESS, ❌ Failed: $FAIL"
+
+      - name: Deploy to dist branch
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git checkout dist 2>/dev/null || git checkout --orphan dist
+          git clean -fd
+
+          # 复制构建产物
+          for tpk in build/*.tpk; do
+            [ -f "$tpk" ] || continue
+            PLUGIN_ID=$(basename "$tpk" .tpk)
+            DIST_DIR="plugins/$PLUGIN_ID"
+            mkdir -p "$DIST_DIR"
+
+            # 删除旧版
+            rm -f "$DIST_DIR"/*.tpk
+
+            # 复制新产物
+            cp "$tpk" "$DIST_DIR/"
+            cp "plugins/$PLUGIN_ID/icon.png" "$DIST_DIR/" 2>/dev/null || true
+
+            # 写入版本号和时间戳
+            PLUGIN_JSON="plugins/$PLUGIN_ID/plugin.json"
+            if [ -f "$PLUGIN_JSON" ]; then
+              jq -r '.version' "$PLUGIN_JSON" > "$DIST_DIR/.version"
+            fi
+            date -u +%Y-%m-%dT%H:%M:%SZ > "$DIST_DIR/.built"
+          done
+
+          # 生成 source.json
+          bash scripts/generate-index.sh .
+
+          # 提交
+          git add -A
+          git diff --staged --quiet || git commit -m "build: update plugins [skip ci]"
+          git push origin dist
