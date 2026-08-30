@@ -3,8 +3,8 @@
 # 用法: build.sh <plugin_dir> <output.tpk>
 set -e
 
-PLUGIN_DIR="$1"
-OUTPUT="$2"
+PLUGIN_DIR=$(cd "$1" && pwd)
+OUTPUT=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
 PLUGIN_ID=$(basename "$PLUGIN_DIR")
 
 echo "  🔨 Compiling C source..."

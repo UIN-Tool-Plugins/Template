@@ -11,6 +11,9 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/utsname.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #ifdef __ANDROID__
 #include <sys/system_properties.h>

@@ -3,8 +3,8 @@
 # 构建单个插件，根据 type 文件决定构建方式
 set -e
 
-PLUGIN_DIR="$1"
-OUTPUT="$2"
+PLUGIN_DIR=$(cd "$1" && pwd)
+OUTPUT=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
 PLUGIN_ID=$(basename "$PLUGIN_DIR")
 PLUGIN_JSON="$PLUGIN_DIR/plugin.json"
 
@@ -76,7 +76,7 @@ case "$BUILD_TYPE" in
     fi
 
     javac -source 11 -target 11 \
-      -classpath "$PLUGIN_DIR/libs/*" \
+      -classpath "$PLUGIN_DIR/libs/*:${ANDROID_HOME:-/usr/local/lib/android/sdk}/platforms/android-34/android.jar" \
       -d "$BUILD_TMP/classes" \
       @"$BUILD_TMP/sources.txt" 2>&1
 
