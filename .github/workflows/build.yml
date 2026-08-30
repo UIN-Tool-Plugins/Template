@@ -40,9 +40,20 @@ jobs:
           # 增量: 本次推送改动的插件
           CHANGED=$(git diff --name-only HEAD~1 HEAD -- plugins/ 2>/dev/null | cut -d'/' -f2 | sort -u)
 
-          # 无改动则构建全部
+          # 检查 dist 分支是否缺少产物，缺少则加入构建队列
+          git fetch origin dist:refs/remotes/origin/dist 2>/dev/null || true
+          for plugin_dir in plugins/*/; do
+            [ -d "$plugin_dir" ] || continue
+            plugin_id=$(basename "$plugin_dir")
+            if ! git ls-tree origin/dist "plugins/$plugin_id/" 2>/dev/null | grep -q ".tpk"; then
+              CHANGED=$(echo -e "$CHANGED\n$plugin_id" | sort -u | grep -v '^$')
+            fi
+          done
+
+          # 无变更则跳过
           if [ -z "$CHANGED" ]; then
-            CHANGED=$(ls -d plugins/*/ 2>/dev/null | xargs -I{} basename {})
+            echo "✅ No plugins to build"
+            exit 0
           fi
 
           echo "📦 Plugins to build: $CHANGED"
@@ -88,8 +99,8 @@ jobs:
             [ -f "$tpk" ] || continue
             PLUGIN_ID=$(basename "$tpk" .tpk)
             DIST_DIR="plugins/$PLUGIN_ID"
+            rm -rf "$DIST_DIR"
             mkdir -p "$DIST_DIR"
-            rm -f "$DIST_DIR"/*.tpk
             cp "$tpk" "$DIST_DIR/"
 
             # 复制 plugin.json（generate-index.sh 需要）
