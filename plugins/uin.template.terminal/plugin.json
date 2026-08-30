@@ -1,0 +1,12 @@
+{
+  "pluginId": "uin.template.terminal",
+  "name": "终端监控",
+  "version": 1,
+  "versionName": "1.0.0",
+  "author": "UIN",
+  "description": "CUI 终端插件示例，显示系统实时信息",
+  "category": "工具",
+  "uiType": "cui",
+  "entry": "scripts/monitor.sh",
+  "notice": "CUI 插件示例，在终端界面中运行 shell 脚本。"
+}
