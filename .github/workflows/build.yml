@@ -37,24 +37,12 @@ jobs:
         run: |
           mkdir -p build
 
-          # 拉取 dist 分支检查已有产物
-          git fetch origin dist:dist 2>/dev/null || true
-
           # 增量: 本次推送改动的插件
           CHANGED=$(git diff --name-only HEAD~1 HEAD -- plugins/ 2>/dev/null | cut -d'/' -f2 | sort -u)
 
-          # 补充: dist 分支没有产物的插件
-          ALL_PLUGINS=$(ls -d plugins/*/ 2>/dev/null | xargs -I{} basename {})
-          for plugin_id in $ALL_PLUGINS; do
-            if [ ! -f "dist/plugins/$plugin_id/"*.tpk ] 2>/dev/null; then
-              CHANGED=$(echo -e "$CHANGED\n$plugin_id" | sort -u | grep -v '^$')
-            fi
-          done
-
-          # 无变更则跳过
+          # 无改动则构建全部
           if [ -z "$CHANGED" ]; then
-            echo "✅ No plugins to build"
-            exit 0
+            CHANGED=$(ls -d plugins/*/ 2>/dev/null | xargs -I{} basename {})
           fi
 
           echo "📦 Plugins to build: $CHANGED"
@@ -78,14 +66,22 @@ jobs:
 
       - name: Deploy to dist branch
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-          # 先保存构建产物到临时目录
+          # 保存构建产物
           cp -r build /tmp/build_backup
 
-          git checkout dist 2>/dev/null || git checkout --orphan dist
-          git clean -fd
+          # 检出 dist 分支到单独目录
+          rm -rf /tmp/dist_repo
+          git clone --branch dist --single-branch https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git /tmp/dist_repo 2>/dev/null || {
+            git clone --branch main --single-branch https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git /tmp/dist_repo
+            cd /tmp/dist_repo
+            git checkout --orphan dist
+            git rm -rf .
+            cd -
+          }
+
+          cd /tmp/dist_repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
 
           # 复制构建产物
           for tpk in /tmp/build_backup/*.tpk; do
@@ -93,28 +89,28 @@ jobs:
             PLUGIN_ID=$(basename "$tpk" .tpk)
             DIST_DIR="plugins/$PLUGIN_ID"
             mkdir -p "$DIST_DIR"
-
-            # 删除旧版
             rm -f "$DIST_DIR"/*.tpk
-
-            # 复制新产物
             cp "$tpk" "$DIST_DIR/"
 
             # 写入版本号和时间戳
-            PLUGIN_JSON="plugins/$PLUGIN_ID/plugin.json"
+            PLUGIN_JSON="$GITHUB_WORKSPACE/plugins/$PLUGIN_ID/plugin.json"
             if [ -f "$PLUGIN_JSON" ]; then
               jq -r '.version' "$PLUGIN_JSON" > "$DIST_DIR/.version"
             fi
             date -u +%Y-%m-%dT%H:%M:%SZ > "$DIST_DIR/.built"
           done
 
-          # 清理临时目录
-          rm -rf /tmp/build_backup
+          # 复制 scripts 和 assets（generate-index.sh 需要）
+          cp -r "$GITHUB_WORKSPACE/scripts" .
+          cp -r "$GITHUB_WORKSPACE/assets" . 2>/dev/null || true
 
           # 生成 source.json
           bash scripts/generate-index.sh .
 
-          # 提交
+          # 清理不需要的文件
+          rm -rf scripts assets node_modules
+
+          # 提交并推送
           git add -A
           git diff --staged --quiet || git commit -m "build: update plugins [skip ci]"
           git push origin dist
