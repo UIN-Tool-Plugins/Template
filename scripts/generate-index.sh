@@ -58,18 +58,18 @@ for plugin_dir in "$DIST_DIR"/plugins/*/; do
     VERSION=1
   fi
 
-  # 从 main 分支的 plugin.json 读取元数据
-  MAIN_PLUGIN_JSON="../plugins/$PLUGIN_ID/plugin.json"
-  if [ ! -f "$MAIN_PLUGIN_JSON" ]; then
-    echo "⚠️ Skip $PLUGIN_ID: plugin.json not found in main"
+  # 从 dist 目录的 plugin.json 读取元数据
+  PLUGIN_JSON="$plugin_dir/plugin.json"
+  if [ ! -f "$PLUGIN_JSON" ]; then
+    echo "⚠️ Skip $PLUGIN_ID: plugin.json not found"
     continue
   fi
 
-  NAME=$(jq -r '.name' "$MAIN_PLUGIN_JSON")
-  VERSION_NAME=$(jq -r '.versionName // "1.0.0"' "$MAIN_PLUGIN_JSON")
-  AUTHOR=$(jq -r '.author // ""' "$MAIN_PLUGIN_JSON")
-  DESC=$(jq -r '.description // ""' "$MAIN_PLUGIN_JSON")
-  CATEGORY=$(jq -r '.category // "未分类"' "$MAIN_PLUGIN_JSON")
+  NAME=$(jq -r '.name' "$PLUGIN_JSON")
+  VERSION_NAME=$(jq -r '.versionName // "1.0.0"' "$PLUGIN_JSON")
+  AUTHOR=$(jq -r '.author // ""' "$PLUGIN_JSON")
+  DESC=$(jq -r '.description // ""' "$PLUGIN_JSON")
+  CATEGORY=$(jq -r '.category // "未分类"' "$PLUGIN_JSON")
 
   # 计算 .tpk 大小
   TPK_FILE="$plugin_dir/$PLUGIN_ID.tpk"

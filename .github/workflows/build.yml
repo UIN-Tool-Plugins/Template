@@ -83,7 +83,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          # 复制构建产物
+          # 复制构建产物和元数据
           for tpk in /tmp/build_backup/*.tpk; do
             [ -f "$tpk" ] || continue
             PLUGIN_ID=$(basename "$tpk" .tpk)
@@ -92,9 +92,10 @@ jobs:
             rm -f "$DIST_DIR"/*.tpk
             cp "$tpk" "$DIST_DIR/"
 
-            # 写入版本号和时间戳
+            # 复制 plugin.json（generate-index.sh 需要）
             PLUGIN_JSON="$GITHUB_WORKSPACE/plugins/$PLUGIN_ID/plugin.json"
             if [ -f "$PLUGIN_JSON" ]; then
+              cp "$PLUGIN_JSON" "$DIST_DIR/"
               jq -r '.version' "$PLUGIN_JSON" > "$DIST_DIR/.version"
             fi
             date -u +%Y-%m-%dT%H:%M:%SZ > "$DIST_DIR/.built"
