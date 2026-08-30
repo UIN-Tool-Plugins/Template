@@ -5,6 +5,8 @@ on:
     paths:
       - 'plugins/**'
       - 'source.json'
+      - 'scripts/**'
+      - 'assets/**'
   workflow_dispatch:
 
 permissions:
@@ -33,12 +35,28 @@ jobs:
       - name: Build changed plugins
         run: |
           mkdir -p build
+
+          # 拉取 dist 分支检查已有产物
+          git fetch origin dist:dist 2>/dev/null || true
+
+          # 增量: 本次推送改动的插件
           CHANGED=$(git diff --name-only HEAD~1 HEAD -- plugins/ 2>/dev/null | cut -d'/' -f2 | sort -u)
 
-          # 首次推送或 workflow_dispatch 时构建全部
+          # 补充: dist 分支没有产物的插件
+          ALL_PLUGINS=$(ls -d plugins/*/ 2>/dev/null | xargs -I{} basename {})
+          for plugin_id in $ALL_PLUGINS; do
+            if [ ! -f "dist/plugins/$plugin_id/"*.tpk ] 2>/dev/null; then
+              CHANGED=$(echo -e "$CHANGED\n$plugin_id" | sort -u | grep -v '^$')
+            fi
+          done
+
+          # 无变更则跳过
           if [ -z "$CHANGED" ]; then
-            CHANGED=$(ls -d plugins/*/ 2>/dev/null | xargs -I{} basename {})
+            echo "✅ No plugins to build"
+            exit 0
           fi
+
+          echo "📦 Plugins to build: $CHANGED"
 
           SUCCESS=0
           FAIL=0
