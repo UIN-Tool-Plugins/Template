@@ -61,11 +61,15 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+
+          # 先保存构建产物到临时目录
+          cp -r build /tmp/build_backup
+
           git checkout dist 2>/dev/null || git checkout --orphan dist
           git clean -fd
 
           # 复制构建产物
-          for tpk in build/*.tpk; do
+          for tpk in /tmp/build_backup/*.tpk; do
             [ -f "$tpk" ] || continue
             PLUGIN_ID=$(basename "$tpk" .tpk)
             DIST_DIR="plugins/$PLUGIN_ID"
@@ -76,7 +80,6 @@ jobs:
 
             # 复制新产物
             cp "$tpk" "$DIST_DIR/"
-            cp "plugins/$PLUGIN_ID/icon.png" "$DIST_DIR/" 2>/dev/null || true
 
             # 写入版本号和时间戳
             PLUGIN_JSON="plugins/$PLUGIN_ID/plugin.json"
@@ -85,6 +88,9 @@ jobs:
             fi
             date -u +%Y-%m-%dT%H:%M:%SZ > "$DIST_DIR/.built"
           done
+
+          # 清理临时目录
+          rm -rf /tmp/build_backup
 
           # 生成 source.json
           bash scripts/generate-index.sh .

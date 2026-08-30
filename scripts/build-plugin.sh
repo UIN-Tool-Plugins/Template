@@ -75,21 +75,37 @@ case "$BUILD_TYPE" in
       exit 1
     fi
 
+    # 查找 host-sdk.jar: 插件 assets/ → 插件 libs/ → 仓库 assets/
+    REPO_ROOT="$(cd "$PLUGIN_DIR/../.." && pwd)"
+    HOST_JAR=$(find "$PLUGIN_DIR" -name "host-sdk.jar" 2>/dev/null | head -1)
+    if [ -z "$HOST_JAR" ] && [ -f "$REPO_ROOT/assets/host-sdk.jar" ]; then
+      HOST_JAR="$REPO_ROOT/assets/host-sdk.jar"
+    fi
+    if [ -z "$HOST_JAR" ]; then
+      HOST_JAR="$PLUGIN_DIR/libs/host-sdk.jar"
+    fi
+    if [ ! -f "$HOST_JAR" ]; then
+      echo "❌ $PLUGIN_ID: host-sdk.jar not found in assets/ or libs/"
+      rm -rf "$BUILD_TMP"
+      exit 1
+    fi
+
+    ANDROID_JAR="${ANDROID_HOME:-/usr/local/lib/android/sdk}/platforms/android-34/android.jar"
     javac -source 11 -target 11 \
-      -classpath "$PLUGIN_DIR/libs/*:${ANDROID_HOME:-/usr/local/lib/android/sdk}/platforms/android-34/android.jar" \
+      -classpath "$HOST_JAR:$PLUGIN_DIR/libs/*:$ANDROID_JAR" \
       -d "$BUILD_TMP/classes" \
       @"$BUILD_TMP/sources.txt" 2>&1
 
     d8 --output "$BUILD_TMP" \
-      --lib "${ANDROID_HOME:-/usr/local/lib/android/sdk}/platforms/android-34/android.jar" \
+      --lib "$ANDROID_JAR" \
       $(find "$BUILD_TMP/classes" -name "*.class") 2>&1
 
     cp "$BUILD_TMP/classes.dex" "$PLUGIN_DIR/plugin.dex"
 
     cd "$PLUGIN_DIR"
-    zip -r "$OUTPUT" \
+    zip -r "$OUTPUT" . \
       plugin.json icon.png plugin.dex web/ scripts/ \
-      -x "type" -x "build.sh" -x "visible" -x "*.DS_Store" -x "src/*" -x "libs/*"
+      -x "type" -x "build.sh" -x "visible" -x "*.DS_Store" -x "src/*" -x "libs/*" -x "assets/*"
     rm -rf "$BUILD_TMP"
     ;;
 
