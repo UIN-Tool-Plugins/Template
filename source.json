@@ -3,7 +3,7 @@
   "name": "Template",
   "description": "",
   "maintainer": "",
-  "lastUpdated": "2026-08-31T02:26:46Z",
+  "lastUpdated": "2026-08-31T03:47:18Z",
   "plugins": [
     {
       "pluginId": "uin.template.calculator",
@@ -13,10 +13,10 @@
       "author": "UIN",
       "description": "带 Python 后端的计算器插件",
       "category": "工具",
-      "size": 4451,
+      "size": 4431,
       "tpkPath": "plugins/uin.template.calculator/uin.template.calculator.tpk",
       "iconPath": "plugins/uin.template.calculator/icon.png",
-      "lastUpdated": "2026-08-31T02:26:46Z"
+      "lastUpdated": "2026-08-31T03:47:18Z"
     }
     ,
     {
@@ -30,7 +30,7 @@
       "size": 2468,
       "tpkPath": "plugins/uin.template.filemanager/uin.template.filemanager.tpk",
       "iconPath": "plugins/uin.template.filemanager/icon.png",
-      "lastUpdated": "2026-08-31T02:26:46Z"
+      "lastUpdated": "2026-08-31T03:47:18Z"
     }
     ,
     {
@@ -44,7 +44,7 @@
       "size": 1553,
       "tpkPath": "plugins/uin.template.hello/uin.template.hello.tpk",
       "iconPath": "plugins/uin.template.hello/icon.png",
-      "lastUpdated": "2026-08-31T02:26:46Z"
+      "lastUpdated": "2026-08-31T03:47:18Z"
     }
     ,
     {
@@ -58,7 +58,7 @@
       "size": 5729,
       "tpkPath": "plugins/uin.template.sysinfo/uin.template.sysinfo.tpk",
       "iconPath": "plugins/uin.template.sysinfo/icon.png",
-      "lastUpdated": "2026-08-31T02:26:46Z"
+      "lastUpdated": "2026-08-31T03:47:18Z"
     }
     ,
     {
@@ -72,7 +72,7 @@
       "size": 1470,
       "tpkPath": "plugins/uin.template.terminal/uin.template.terminal.tpk",
       "iconPath": "plugins/uin.template.terminal/icon.png",
-      "lastUpdated": "2026-08-31T02:26:46Z"
+      "lastUpdated": "2026-08-31T03:47:18Z"
     }
   ]
 }
