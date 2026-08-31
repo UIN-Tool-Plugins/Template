@@ -38,10 +38,14 @@ jobs:
           mkdir -p build
 
           # 增量: 本次推送改动的插件
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- plugins/ 2>/dev/null | cut -d'/' -f2 | sort -u)
+          CHANGED=""
+          if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            CHANGED=$(git diff --name-only "${{ github.event.before }}" HEAD -- plugins/ 2>/dev/null | cut -d'/' -f2 | sort -u)
+          fi
 
-          # 无改动则构建全部
+          # workflow_dispatch 或无法比较时构建全部
           if [ -z "$CHANGED" ]; then
+            echo "📦 Full build (no diff available or manual trigger)"
             CHANGED=$(ls -d plugins/*/ 2>/dev/null | xargs -I{} basename {})
           fi
 
