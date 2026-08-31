@@ -1,13 +1,11 @@
 package com.example.filemanager;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.ScrollView;
-import android.widget.Button;
-import android.widget.Toast;
 import java.io.File;
 
 public class FileManagerPlugin implements com.UIN.Tool.plugin.PluginInterface {
@@ -16,8 +14,8 @@ public class FileManagerPlugin implements com.UIN.Tool.plugin.PluginInterface {
     private LinearLayout container;
 
     @Override
-    public View onCreateView(com.UIN.Tool.plugin.PluginContext pluginContext, ViewGroup container, Object savedInstanceState) {
-        this.context = pluginContext.getContext();
+    public View onCreateView(Context context, ViewGroup container, Bundle savedInstanceState) {
+        this.context = context;
         this.container = new LinearLayout(context);
         this.container.setOrientation(LinearLayout.VERTICAL);
         this.container.setPadding(32, 32, 32, 32);
@@ -28,8 +26,15 @@ public class FileManagerPlugin implements com.UIN.Tool.plugin.PluginInterface {
         title.setPadding(0, 0, 0, 24);
         this.container.addView(title);
 
-        // 列出插件目录下的文件
-        File pluginDir = new File(pluginContext.getPluginDir());
+        File pluginDir = new File("/storage/emulated/0/UIN_Tool/plugins");
+        if (!pluginDir.exists()) pluginDir.mkdirs();
+
+        TextView pathInfo = new TextView(context);
+        pathInfo.setText("路径: " + pluginDir.getAbsolutePath());
+        pathInfo.setTextSize(12);
+        pathInfo.setPadding(0, 0, 0, 16);
+        this.container.addView(pathInfo);
+
         listFiles(pluginDir, this.container, 0);
 
         return this.container;
@@ -81,5 +86,10 @@ public class FileManagerPlugin implements com.UIN.Tool.plugin.PluginInterface {
     }
 
     @Override
-    public void onHostEvent(String event, android.os.Bundle data) {}
+    public Bundle onSaveInstanceState() {
+        return null;
+    }
+
+    @Override
+    public void onHostEvent(String event, Bundle data) {}
 }

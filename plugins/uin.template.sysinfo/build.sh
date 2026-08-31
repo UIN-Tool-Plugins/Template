@@ -17,6 +17,7 @@ if [ ! -f "$SRC_FILE" ]; then
 fi
 
 gcc -O2 -o "$PLUGIN_DIR/sysinfo_server" "$SRC_FILE" -lm
+chmod +x "$PLUGIN_DIR/sysinfo_server"
 echo "  ✅ Compiled sysinfo_server"
 
 # 打包 TPK
