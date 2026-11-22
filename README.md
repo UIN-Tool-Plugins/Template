@@ -14,7 +14,7 @@ UIN Tool 插件仓库模板。fork 后改 `source.json`、在 `plugins/` 下加�
 
 ```
 .
-├── .github/workflows/build.yml    CI：构建 → 签名（可选）→ 发布 dist
+├── .github/workflows/build.yml    CI：构建 → 签名（默认开启）→ 发布 dist
 ├── assets/
 │   ├── host-sdk.jar               原生插件编译用的宿主公开 API
 │   └── host-sdk.sha256            固定版本，CI 强校验
@@ -210,11 +210,11 @@ C 示例的后端运行在插件实际使用的环境里：内置 proot 是 Debi
 
 同一个仓库的发布有 `concurrency` 锁，不会两个 job 同时改 `dist`。在 Actions 页面手动 Run workflow 会全量构建。
 
-## 签名（可选，强烈建议）
+## 签名（必需，默认开启）
 
-模板仓库默认 `REQUIRE_SIGNING=0`：没有密钥也能构建，但产物是未签名 TPK，客户端会显示「未知签名」。
+模板仓库默认 `REQUIRE_SIGNING=1`：所有插件必须签名才能发布。
 
-正式发布建议：
+发布前需配置 Secrets：
 
 1. 生成 keystore：`keytool -genkeypair -keystore release.p12 -storetype PKCS12 -alias plugin -keyalg RSA -keysize 4096 -validity 10000`
 2. 仓库 Settings → Secrets and variables → Actions 添加：
@@ -227,7 +227,7 @@ C 示例的后端运行在插件实际使用的环境里：内置 proot 是 Debi
 | `PLUGIN_KEY_ALIAS` | 别名，例如 `plugin` |
 | `PLUGIN_CERT_SHA256` | 证书 SHA-256，可选但推荐 |
 
-3. 把 `.github/workflows/build.yml` 里的 `REQUIRE_SIGNING: '0'` 改成 `'1'`
+fork 后若暂时无密钥，可将 `.github/workflows/build.yml` 里的 `REQUIRE_SIGNING: '1'` 改为 `'0'` 以跑通流程，但正式发布必须改回 `'1'` 并配置密钥。
 
 签名规则：
 
@@ -291,7 +291,7 @@ dist/
 
 **构建提示未签名**
 
-模板默认允许；发布前配置 Secrets 并把 `REQUIRE_SIGNING` 改成 `'1'`。
+模板默认要求签名（`REQUIRE_SIGNING=1`）；请配置 Secrets（`PLUGIN_KEYSTORE_BASE64` 等）。fork 后暂时无密钥可改为 `0` 跑通流程，但发布必须改回 `1` 并配置密钥。
 
 **版本没有变化**
 

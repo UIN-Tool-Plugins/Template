@@ -22,9 +22,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # 模板仓库默认允许未签名构建，方便 fork 后先跑通流程。
-  # 正式发布请配置 Secrets，并把这里改成 '1'。
-  REQUIRE_SIGNING: '0'
+  # 模板插件全部签名：正式发布需配置 Secrets（PLUGIN_KEYSTORE_BASE64 等）。
+  # fork 后若无密钥可暂时改回 '0' 跑通流程，但发布产物必须签名。
+  REQUIRE_SIGNING: '1'
   ANDROID_PLATFORM: '34'
   ANDROID_BUILD_TOOLS: '35.0.0'
 
