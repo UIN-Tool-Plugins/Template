@@ -103,7 +103,7 @@ PY
         cp "$source_dir/$icon_rel" "$target/icon.png"
     fi
 
-    # 隐藏标记：dist 里保留 visible，索引据此排除
+    # 显示标记：dist 里保留 visible，索引据此排除 0 / false（隐藏）
     if [ -f "$source_dir/visible" ]; then
         cp "$source_dir/visible" "$target/visible"
     else

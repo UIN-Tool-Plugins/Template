@@ -6,7 +6,7 @@ UIN Tool 插件仓库模板。fork 后改 `source.json`、在 `plugins/` 下加�
 
 1. Fork 此仓库
 2. 修改 `source.json`（`sourceId`、名称、描述、维护者）
-3. 在 `plugins/` 下创建插件；示例插件默认 `visible=1`（隐藏），删掉该文件即可显示
+3. 在 `plugins/` 下创建插件；示例插件默认 `visible=1`（显示），改成 `0` 即隐藏（仍构建发布，只是不进源列表）
 4. 推送到 `main`
 5. 在 UIN Tool：软件 → 插件源管理 → 添加 → 输入仓库地址
 
@@ -32,7 +32,7 @@ UIN Tool 插件仓库模板。fork 后改 `source.json`、在 `plugins/` 下加�
 ├── plugins/
 │   └── your.author.pluginname/
 │       ├── type                   构建方式（空 / native / other）
-│       ├── visible                1 = 不在源列表显示
+│       ├── visible                1 = 在源列表显示，0 = 隐藏
 │       ├── plugin.json            插件元数据
 │       ├── icon.png               PNG 图标
 │       └── ...                    web/、scripts/、src/ 等
@@ -64,10 +64,10 @@ UIN Tool 插件仓库模板。fork 后改 `source.json`、在 `plugins/` 下加�
 
 | 内容 | 效果 |
 |------|------|
-| 无文件 / `0` / `false` | 显示在插件源列表 |
-| `1` / `true` | 构建发布，但不写入 `source.json` |
+| 无文件 / `1` / `true` | 显示在插件源列表 |
+| `0` / `false` | 构建发布，但不写入 `source.json` |
 
-模板自带的示例都是 `visible=1`，方便先看构建结果。准备发布时删掉对应 `visible` 文件。
+模板自带的示例都是 `visible=1`，会直接出现在源列表里。不想让某个示例出现在列表时，把它的 `visible` 改成 `0`。
 
 ### plugin.json
 
@@ -278,7 +278,7 @@ dist/
     ├── <pluginId>.tpk
     ├── plugin.json
     ├── icon.png
-    ├── visible            隐藏标记（可选）
+    ├── visible            显示标记（可选，0 = 隐藏）
     ├── .version
     ├── .sha256
     ├── .signer

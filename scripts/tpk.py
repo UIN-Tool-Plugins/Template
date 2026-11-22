@@ -137,7 +137,8 @@ def read_text(path, default=""):
 
 
 def is_hidden_marker(path):
-    return read_text(path).lower() in {"1", "true"}
+    """visible 标记：0 / false 隐藏；1 / true / 无文件显示。"""
+    return read_text(path).lower() in {"0", "false", "off", "no"}
 
 
 def validate_plugin_json(info, plugin_dir, require_entry=True):
@@ -559,7 +560,7 @@ def cmd_index(args):
                 continue
 
             if is_hidden_marker(os.path.join(plugin_dir, "visible")):
-                log("  ⏭️  隐藏: " + plugin_id)
+                log("  ⏭️  隐藏（visible=0）: " + plugin_id)
                 continue
 
             plugin_json_path = os.path.join(plugin_dir, "plugin.json")
