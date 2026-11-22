@@ -2,123 +2,143 @@ name: Build Plugins
 
 on:
   push:
+    branches: [main]
     paths:
       - 'plugins/**'
       - 'source.json'
       - 'scripts/**'
       - 'assets/**'
-      - '.github/workflows/**'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# 同一个仓库的 dist 只能有一个发布者，避免两个 job 同时 push 互相覆盖。
+concurrency:
+  group: plugin-dist-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  # 模板仓库默认允许未签名构建，方便 fork 后先跑通流程。
+  # 正式发布请配置 Secrets，并把这里改成 '1'。
+  REQUIRE_SIGNING: '0'
+  # C 示例必须交叉编译成 Android 可执行文件，不能发布 CI 主机的二进制。
+  REQUIRE_ANDROID_BINARY: '1'
+  ANDROID_PLATFORM: '34'
+  ANDROID_BUILD_TOOLS: '35.0.0'
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PLUGIN_KEYSTORE_BASE64: ${{ secrets.PLUGIN_KEYSTORE_BASE64 }}
+      PLUGIN_STORE_PASSWORD: ${{ secrets.PLUGIN_STORE_PASSWORD }}
+      PLUGIN_KEY_PASSWORD: ${{ secrets.PLUGIN_KEY_PASSWORD }}
+      PLUGIN_KEY_ALIAS: ${{ secrets.PLUGIN_KEY_ALIAS }}
+      PLUGIN_CERT_SHA256: ${{ secrets.PLUGIN_CERT_SHA256 }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v7
         with:
-          ref: main
+          fetch-depth: 0
 
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
-      - name: Install jq
-        run: sudo apt-get install -y jq
+      - name: Install platform and build-tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager --install "platforms;android-${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" >/dev/null
+          ls -d "$ANDROID_HOME/platforms/android-${ANDROID_PLATFORM}" "$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}"
 
-      - name: Build changed plugins
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+          add-to-path: true
+
+      - name: Verify host-sdk
+        run: bash scripts/check-host-sdk.sh
+
+      - name: Fetch dist branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          rm -rf /tmp/dist_repo
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$REMOTE" dist >/dev/null 2>&1; then
+            git clone --depth 1 --branch dist "$REMOTE" /tmp/dist_repo
+          else
+            mkdir -p /tmp/dist_repo
+            git -C /tmp/dist_repo init -q
+            git -C /tmp/dist_repo remote add origin "$REMOTE"
+            git -C /tmp/dist_repo checkout -q --orphan dist
+          fi
+          git -C /tmp/dist_repo config user.name "github-actions[bot]"
+          git -C /tmp/dist_repo config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Plan build
         run: |
           mkdir -p build
+          bash scripts/changed-plugins.sh "${{ github.event.before }}" "${{ github.sha }}" > build/plan.txt
+          echo "本次构建插件："
+          cat build/plan.txt
 
-          # 增量: 本次推送改动的插件
-          CHANGED=""
-          if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            CHANGED=$(git diff --name-only "${{ github.event.before }}" HEAD -- plugins/ 2>/dev/null | cut -d'/' -f2 | sort -u)
-          fi
-
-          # workflow_dispatch 或无法比较时构建全部
-          if [ -z "$CHANGED" ]; then
-            echo "📦 Full build (no diff available or manual trigger)"
-            CHANGED=$(ls -d plugins/*/ 2>/dev/null | xargs -I{} basename {})
-          fi
-
-          echo "📦 Plugins to build: $CHANGED"
-
-          SUCCESS=0
-          FAIL=0
-
-          for plugin_id in $CHANGED; do
-            PLUGIN_DIR="plugins/$plugin_id"
-            [ -d "$PLUGIN_DIR" ] || continue
-
-            if bash scripts/build-plugin.sh "$PLUGIN_DIR" "build/$plugin_id.tpk"; then
-              SUCCESS=$((SUCCESS + 1))
-            else
-              FAIL=$((FAIL + 1))
-              echo "❌ Failed: $plugin_id"
-            fi
-          done
-
-          echo "✅ Built: $SUCCESS, ❌ Failed: $FAIL"
-
-      - name: Deploy to dist branch
+      - name: Build plugins
         run: |
-          # 保存构建产物
-          cp -r build /tmp/build_backup
+          if [ ! -s build/plan.txt ]; then
+            echo "没有需要重新构建的插件，只更新索引"
+            exit 0
+          fi
+          while IFS= read -r plugin_id; do
+            [ -n "$plugin_id" ] || continue
+            [ -d "plugins/$plugin_id" ] || continue
+            prev=$(cat "/tmp/dist_repo/plugins/$plugin_id/.version" 2>/dev/null || echo 0)
+            bash scripts/build-plugin.sh "plugins/$plugin_id" "build/$plugin_id.tpk" "$prev"
+          done < build/plan.txt
 
-          # 检出 dist 分支到单独目录
-          rm -rf /tmp/dist_repo
-          git clone --branch dist --single-branch https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git /tmp/dist_repo 2>/dev/null || {
-            git clone --branch main --single-branch https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git /tmp/dist_repo
-            cd /tmp/dist_repo
-            git checkout --orphan dist
-            git rm -rf .
-            cd -
-          }
-
-          cd /tmp/dist_repo
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-          # 复制构建产物和元数据（只更新有新 .tpk 的插件）
-          for tpk in /tmp/build_backup/*.tpk; do
-            [ -f "$tpk" ] || continue
-            PLUGIN_ID=$(basename "$tpk" .tpk)
-            DIST_DIR="plugins/$PLUGIN_ID"
-            rm -rf "$DIST_DIR"
-            mkdir -p "$DIST_DIR"
-            cp "$tpk" "$DIST_DIR/"
-
-            # 复制 plugin.json、icon.png（generate-index.sh 需要）
-            PLUGIN_DIR="$GITHUB_WORKSPACE/plugins/$PLUGIN_ID"
-            if [ -f "$PLUGIN_DIR/plugin.json" ]; then
-              cp "$PLUGIN_DIR/plugin.json" "$DIST_DIR/"
-              jq -r '.version' "$PLUGIN_DIR/plugin.json" > "$DIST_DIR/.version"
-            fi
-            if [ -f "$PLUGIN_DIR/icon.png" ]; then
-              cp "$PLUGIN_DIR/icon.png" "$DIST_DIR/"
-            fi
-            date -u +%Y-%m-%dT%H:%M:%SZ > "$DIST_DIR/.built"
+      - name: Verify built packages
+        run: |
+          shopt -s nullglob
+          files=(build/*.tpk)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "本次没有构建产物"
+            exit 0
+          fi
+          for tpk in "${files[@]}"; do
+            python3 scripts/tpk.py verify --tpk "$tpk" --require-signature
           done
 
-          # 复制 scripts 和 assets（generate-index.sh 需要）
-          cp -r "$GITHUB_WORKSPACE/scripts" .
-          cp -r "$GITHUB_WORKSPACE/assets" . 2>/dev/null || true
+      - name: Deploy to dist
+        run: bash scripts/deploy-dist.sh /tmp/dist_repo build source.json
 
-          # 生成 source.json
-          bash scripts/generate-index.sh .
+      - name: Upload packages
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: plugins-${{ github.run_number }}
+          path: |
+            build/*.tpk
+            build/meta/*.json
+          if-no-files-found: ignore
+          retention-days: 14
 
-          # 清理不需要的文件
-          rm -rf scripts assets node_modules
-
-          # 提交并推送
-          git add -A
-          git diff --staged --quiet || git commit -m "build: update plugins [skip ci]"
-          git push origin dist
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## 插件构建"
+            echo ""
+            echo "- 提交：${{ github.sha }}"
+            echo "- 触发：${{ github.event_name }}"
+            echo ""
+            python3 scripts/tpk.py summary --meta-dir build/meta
+          } >> "$GITHUB_STEP_SUMMARY"

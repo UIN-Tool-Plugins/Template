@@ -9,7 +9,7 @@
   "uiType": "cui",
   "entry": "scripts/monitor.sh",
   "backend": "other",
-  "backendStartCommand": "./sysinfo_server",
+  "backendStartCommand": "sh scripts/start.sh",
   "backendAutoStart": true,
   "backendHealthCheck": "/health",
   "notice": "演示 C 语言后端插件的完整结构。C 源码编译为二进制程序，作为 HTTP 后端运行。"

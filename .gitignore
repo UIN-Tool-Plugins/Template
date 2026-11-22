@@ -1,0 +1,24 @@
+# 构建输出
+build/
+dist/
+*.tpk
+*.class
+
+# Python
+__pycache__/
+*.pyc
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.gradle/
+.DS_Store
+Thumbs.db
+
+# 不要提交密钥
+*.jks
+*.keystore
+*.p12
+*.pfx
+key.txt
+keystore.properties
