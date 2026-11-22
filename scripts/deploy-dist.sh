@@ -134,16 +134,21 @@ if git diff --staged --quiet; then
     exit 0
 fi
 
+# 标题只写数量：commit 首行同时也是 Actions 运行名和 git log 的标题，
+# 点名插件会随数量无限变长。具体改了什么看 CI 日志或 dist 的 diff。
 if [ "${#BUILT[@]}" -gt 0 ]; then
-    message="build: update ${BUILT[*]}"
+    git commit -q -m "build: update ${#BUILT[@]} plugin(s)"
 else
-    message="build: refresh plugin index"
+    git commit -q -m "build: refresh plugin index"
 fi
-git commit -q -m "$message"
 
 for attempt in 1 2 3; do
     if git push origin HEAD:dist; then
-        echo "✅ 已推送 dist（${BUILT[*]:-仅索引}）"
+        if [ "${#BUILT[@]}" -gt 0 ]; then
+            echo "✅ 已推送 dist（${#BUILT[@]} 个插件）"
+        else
+            echo "✅ 已推送 dist（仅索引）"
+        fi
         exit 0
     fi
     echo "⚠️  推送失败，第 $attempt 次重试..."

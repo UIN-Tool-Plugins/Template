@@ -1,4 +1,6 @@
 name: Build Plugins
+# 运行名固定成短标题；默认会取 commit 首行，插件多时会被撑长。
+run-name: "Build plugins #${{ github.run_number }}"
 
 on:
   push:
@@ -87,7 +89,8 @@ jobs:
         run: |
           mkdir -p build
           bash scripts/changed-plugins.sh "${{ github.event.before }}" "${{ github.sha }}" > build/plan.txt
-          echo "本次构建插件："
+          count=$(wc -l < build/plan.txt | tr -d ' ')
+          echo "本次构建插件：${count} 个"
           cat build/plan.txt
 
       - name: Build plugins
