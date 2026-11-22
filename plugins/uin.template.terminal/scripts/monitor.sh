@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # 系统监控脚本 - CUI 插件示例
 echo "=========================================="
 echo "  UIN Tool System Monitor (CUI Plugin)"

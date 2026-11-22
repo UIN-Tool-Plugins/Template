@@ -105,8 +105,7 @@ if [ "$TYPE" = "other" ]; then
         PLUGIN_ID="$PLUGIN_ID" \
         PLUGIN_DIR="$STAGE" \
         OUTPUT_TPK="$OUTPUT" \
-        REQUIRE_ANDROID_BINARY="${REQUIRE_ANDROID_BINARY:-0}" \
-        ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-}" \
+        CROSS_CC="${CROSS_CC:-}" \
         bash "$STAGE/build.sh" "$STAGE" "$OUTPUT"
     ) || die "$PLUGIN_ID: build.sh 失败"
     if [ -f "$OUTPUT" ] && [ -s "$OUTPUT" ]; then

@@ -190,9 +190,9 @@ build.sh <暂存目录> <输出.tpk>
 - 旧脚本如果仍生成 `$2`，会直接使用并做同样校验。
 - 打包自动排除 `type`、`visible`、`build.sh`、`src/`、`libs/`、`data/`、`*.tpk`、`*.class`。
 
-C 交叉编译优先使用 `ANDROID_NDK_HOME` 里的 `aarch64-linux-android*-clang`；CI 设置 `REQUIRE_ANDROID_BINARY=1`，没有 NDK 会失败，避免发布主机二进制。
+C 示例的后端运行在插件实际使用的环境里：内置 proot 是 Debian (glibc)，实体 Termux 是 Android (bionic)。同时兼容两者的是**静态链接的 Linux aarch64 可执行文件**，`build.sh` 优先使用 `aarch64-linux-gnu-gcc -static`，并检查产物必须是 `ARM aarch64` 且 `statically linked`。Android NDK 的 bionic 动态可执行文件在 Debian 容器里缺少 `/system/bin/linker64`，不能作为后端。
 
-宿主解压 TPK 不会保留 Unix 可执行位。示例用 `scripts/start.sh` 在启动前补 `chmod +x` 再 `exec`，`backendStartCommand` 写 `sh scripts/start.sh`。
+宿主解压 TPK 不会保留 Unix 可执行位，共享存储通常也是 `noexec`。示例的 `scripts/start.sh` 会先把二进制复制到可执行目录再 `exec`：依次尝试 `$TMPDIR`、`/tmp`、`$HOME`，适配内置 proot 与实体 Termux。`backendStartCommand` 写 `sh scripts/start.sh`。
 
 ### .tpkignore
 
@@ -238,7 +238,7 @@ C 交叉编译优先使用 `ANDROID_NDK_HOME` 里的 `aarch64-linux-android*-cla
 
 ## 本地构建
 
-需要 JDK 17、Android SDK platform + build-tools、Python 3、bash；原生插件需要 `d8`，C 需要 NDK（可选）。
+需要 JDK 17、Android SDK platform + build-tools、Python 3、bash；原生插件需要 `d8`，C 示例需要 aarch64 静态交叉编译器（Ubuntu/Debian 安装 `gcc-aarch64-linux-gnu`）。
 
 ```bash
 # 全部插件
@@ -285,7 +285,7 @@ dist/
     └── .built
 ```
 
-`source.json` 字段：`pluginId`、`name`、`version`、`versionName`、`author`、`description`、`category`、`uiType`、`size`、`tpkPath`、`iconPath`、`lastUpdate`、`updateLog`、`repositoryUrl`，以及 `sha256`、`signerSha256`、`signed`、`minHostVersion`。
+`source.json` 字段：`pluginId`、`name`、`version`、`versionName`、`author`、`description`、`category`、`uiType`、`size`、`tpkPath`、`iconPath`、`iconSha256`、`lastUpdate`、`updateLog`、`repositoryUrl`，以及 `sha256`、`signerSha256`、`signed`、`minHostVersion`。`iconSha256` 是 `icon.png` 的内容摘要，客户端下载图标后按它校验，不一致就不显示也不写缓存。
 
 ## 常见问题
 
@@ -303,7 +303,7 @@ dist/
 
 **C 产物架构不对**
 
-CI 必须设置 `ANDROID_NDK_HOME`；本地主机 gcc 只用于测试逻辑。
+CI 会自动安装 `gcc-aarch64-linux-gnu`；本地需要 aarch64 交叉编译器，或直接在 aarch64 Linux 上构建。产物必须是静态链接。
 
 **删除插件后 dist 还有旧包**
 

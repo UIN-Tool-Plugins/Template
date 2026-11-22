@@ -14,10 +14,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-#ifdef __ANDROID__
-#include <sys/system_properties.h>
-#endif
+#include <signal.h>
 
 #define BUFFER_SIZE 4096
 
@@ -82,6 +79,9 @@ static void handle_request(int client_fd) {
 }
 
 int main() {
+    /* 客户端提前断开时不要被 SIGPIPE 杀掉 */
+    signal(SIGPIPE, SIG_IGN);
+
     int port = get_port();
     int server_fd, client_fd;
     struct sockaddr_in addr;

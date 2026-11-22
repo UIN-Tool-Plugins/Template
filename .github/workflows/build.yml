@@ -23,8 +23,6 @@ env:
   # 模板仓库默认允许未签名构建，方便 fork 后先跑通流程。
   # 正式发布请配置 Secrets，并把这里改成 '1'。
   REQUIRE_SIGNING: '0'
-  # C 示例必须交叉编译成 Android 可执行文件，不能发布 CI 主机的二进制。
-  REQUIRE_ANDROID_BINARY: '1'
   ANDROID_PLATFORM: '34'
   ANDROID_BUILD_TOOLS: '35.0.0'
 
@@ -59,11 +57,11 @@ jobs:
           sdkmanager --install "platforms;android-${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" >/dev/null
           ls -d "$ANDROID_HOME/platforms/android-${ANDROID_PLATFORM}" "$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}"
 
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r27c
-          add-to-path: true
+      - name: Install aarch64 cross compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+          aarch64-linux-gnu-gcc --version | head -1
 
       - name: Verify host-sdk
         run: bash scripts/check-host-sdk.sh

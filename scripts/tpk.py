@@ -630,7 +630,13 @@ def cmd_index(args):
             if signer:
                 entry["signerSha256"] = format_fingerprint(signer)
             if os.path.isfile(icon_path):
-                entry["iconPath"] = "plugins/%s/icon.png" % plugin_id
+                icon_size = os.path.getsize(icon_path)
+                if icon_size <= 0:
+                    log("  ⚠️  图标是 0 字节，跳过: " + icon_path)
+                else:
+                    entry["iconPath"] = "plugins/%s/icon.png" % plugin_id
+                    # 客户端下载图标后按这个摘要校验，避免缓存/CDN 返回空文件或别的图片。
+                    entry["iconSha256"] = sha256_file(icon_path)
             if info.get("updateLog"):
                 entry["updateLog"] = str(info["updateLog"])
             if info.get("minHostVersion"):
